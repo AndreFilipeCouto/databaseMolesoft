@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="1f83de05-cd83-4041-b42f-6e144eeefbde">
+		<http:listener-connection host="0.0.0.0" port="8086" />
+	</http:listener-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="db7af68b-e15a-4792-b074-86952925159a" >
+		<db:oracle-connection host="10.197.94.212" user="rms16" password="rms16" serviceName="MOMLAB16" />
+	</db:config>
+	<flow name="provaFlow" doc:id="bc481d3c-c563-4822-948c-aca6d99c800c" >
+		<http:listener doc:name="Listener" doc:id="563abdf5-65d1-44c6-a9d7-5debf3017592" config-ref="HTTP_Listener_config" path="/teste">
+		</http:listener>
+		<logger level="INFO" doc:name="Logger" doc:id="6cf5022a-e86f-4400-af2f-e1a370590483" message="#[attributes]"/>
+		<choice doc:name="Choice" doc:id="dcf1ab58-b47e-4a61-aec8-e0405a6c3e6d" >
+			<when expression="attributes.queryParams.name != null">
+				<flow-ref doc:name="Flow Reference" doc:id="7449e2fb-a60d-4ace-a2ea-f66f56fb7def" name="provaSub_Flow"/>
+			</when>
+			<otherwise>
+				<flow-ref doc:name="Flow Reference" doc:id="47b5e685-6330-4bd8-a6fb-ce0902bc4ecc" name="provaSub_Flow1"/>
+			</otherwise>
+		</choice>
+	</flow>
+	<sub-flow name="provaSub_Flow" doc:id="00eac07b-59d7-413c-aed3-23c5164af352" >
+		<db:select doc:name="Copy_of_Select" doc:id="5be26f67-63f3-4946-8f7c-73e7569bbeac" config-ref="Database_Config" >
+			<db:sql >SELECT * FROM item_master WHERE ITEM= :name</db:sql>
+			<db:input-parameters ><![CDATA[#[{'name' : attributes.queryParams.name}]]]></db:input-parameters>
+		</db:select>
+		<set-payload value="#[output application/json --- payload]" doc:name="Set Payload" doc:id="a7189880-63b6-4393-9fc4-c476c7735e6a" />
+		<ee:transform doc:name="Transform Message" doc:id="599272e4-212e-49f7-bd30-23c0bc175d7c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="455eb139-10da-41d7-bf9b-bbbcacc4acc2" message="#[output application/json --- payload]"/>
+	</sub-flow>
+	<sub-flow name="provaSub_Flow1" doc:id="ad23cbe8-1ad3-4e12-b343-b4bf131ce995" >
+		<db:select doc:name="Select" doc:id="e609d616-4ee6-44c0-8d3c-3bb451a00389" config-ref="Database_Config">
+			<db:sql>SELECT * FROM item_master</db:sql>
+		</db:select>
+		<set-payload value="#[output application/json --- payload]" doc:name="Copy_of_Set Payload" doc:id="b63392ac-4b54-4c92-9e94-8bd0f4fe48e6" />
+	</sub-flow>
+</mule>
